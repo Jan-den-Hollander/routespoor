@@ -90,7 +90,7 @@ select{width:100%;min-height:52px;padding:10px;font-size:17px;margin-bottom:10px
 #dlg .btn{width:100%;flex:none;text-align:left}#dlg .btn small{display:block;font:400 13px Inter,sans-serif;opacity:.9}
 .mt{height:10px;background:#e6dfcf;border-radius:6px;overflow:hidden}#mb{height:100%;width:0}
 #meter small{display:block;margin:4px 0 10px;color:var(--muted);font-size:12px}
-#cleanrow{margin-top:6px}#cleanrow>span{flex:1}#cleanrow select{width:auto;flex:none;margin:0;min-height:48px}
+#cleanrow{margin-top:6px;flex-wrap:wrap}#cleanrow>span{flex:1 1 100%}#cleanrow select{width:100%;flex:none;margin:0 0 4px;min-height:48px}.item .btn.s{font-size:14px;padding:8px 4px}
 .ht>span{margin-left:auto}
 #taalKnop{margin-left:12px;min-height:36px;padding:4px 10px;border:1.5px solid var(--yellow);border-radius:10px;background:transparent;color:#fff;font:600 13px Inter,sans-serif}
 #taalKnop b{color:var(--yellow)}
@@ -130,7 +130,7 @@ select{width:100%;min-height:52px;padding:10px;font-size:17px;margin-bottom:10px
    <p>Je routes staan alleen op jouw telefoon. Er wordt niets verstuurd totdat jij zelf op Delen drukt. Km en werktijd tonen is jouw keuze.</p>
   </div>
  </div>
- <div id="v2" class="hide"><div id="meter"><div class="mt"><div id="mb"></div></div><small id="mtxt"></small></div><div class="row hide" id="selbar"><button class="btn s" id="bsa">Alles kiezen</button><button class="btn s" id="bsd" disabled>Kies routes om te delen</button></div><div id="lijst"></div><label class="opt" id="cleanrow"><span>Oude routes automatisch wissen<small>Standaard nooit. Jij kiest.</small></span><select id="clean"><option value="0">Nooit</option><option value="30">Na 30 dagen</option><option value="90">Na 90 dagen</option><option value="365">Na 1 jaar</option></select></label></div>
+ <div id="v2" class="hide"><div id="meter"><div class="mt"><div id="mb"></div></div><small id="mtxt"></small></div><div class="row hide" id="selbar"><button class="btn s" id="bsa">Alles kiezen</button><button class="btn s" id="bsd" disabled>Kies routes om te delen</button></div><label class="opt" id="cleanrow"><span>Oude routes automatisch wissen<small>Standaard nooit. Jij kiest.</small></span><select id="clean"><option value="0">Nooit</option><option value="30">Na 30 dagen</option><option value="90">Na 90 dagen</option><option value="365">Na 1 jaar</option></select></label><div id="lijst"></div></div>
 </div>
 <div id="dlg" class="hide"><div class="box"><b id="dt">Route delen</b>
 <button class="btn" data-f="png">🖼 Plaatje<small>Kaart met route, voor WhatsApp, mail of galerij</small></button>
@@ -247,6 +247,8 @@ help:`<h3>A cosa serve?</h3>
 }};
 let taal=(()=>{try{return localStorage.getItem('routespoor_taal')}catch(e){return null}})()||((navigator.language||'').toLowerCase().startsWith('it')?'it':'nl');
 function tr(k,v){let x=TR[taal][k]!==undefined?TR[taal][k]:(TR.nl[k]||k);if(v)Object.keys(v).forEach(q=>x=x.split('{'+q+'}').join(v[q]));return x}
+function tb(k,v){const t=taal;const a=tr(k,v);taal=t==='nl'?'it':'nl';const b=tr(k,v);taal=t;return a+' / '+b}
+function cleanHtml(){const o=taal==='nl'?['nl','it']:['it','nl'],p=o.map(l=>TR[l].cleanLbl.split('<small>'));return p[0][0]+' / '+p[1][0]+'<small>'+p[0][1].replace('</small>','')+' / '+p[1][1].replace('</small>','')+'</small>'}
 const LC=()=>taal==='it'?'it-IT':'nl-NL';
 const ttype=v=>TR[taal]['type_'+v]||v;
 
@@ -501,9 +503,9 @@ async function doShare(L,fmt,btn){
  ready=()=>send([file],tt,tx);
 }
 const sel=new Set();
-function selUi(){const n=sel.size;$('bsd').textContent=n?(n>1?tr('bsdN',{n}):tr('bsd1')):tr('bsd0');$('bsd').disabled=!n;$('bsa').textContent=(n&&n===arch.length)?tr('bsaNone'):tr('bsaAll');meterUi()}
+function selUi(){const n=sel.size;$('bsd').textContent=n?(n>1?tb('bsdN',{n}):tb('bsd1')):tb('bsd0');$('bsd').disabled=!n;$('bsa').textContent=(n&&n===arch.length)?tb('bsaNone'):tb('bsaAll');meterUi()}
 function meterUi(){const p=Math.min(100,Math.round(stor()*100));$('mb').style.width=p+'%';$('mb').style.background=p>90?'#9B1B1B':p>70?'#C4501A':'#2D5016';
- $('mtxt').textContent=tr(arch.length===1?'mt1':'mtN',{p,n:arch.length})+(p>70?tr('mtHi'):'')}
+ $('mtxt').textContent=tb(arch.length===1?'mt1':'mtN',{p,n:arch.length})+(p>70?' ·'+tb('mtHi').replace(/ · /g,' '):'')}
 function opruim(){const d=+S.keep||0;if(!d)return;const n=arch.length;arch=arch.filter(r=>r.id>Date.now()-d*864e5);if(arch.length!==n)sv('rs_arch',arch)}
 function lijst(){
  const el=$('lijst');
@@ -515,7 +517,7 @@ function lijst(){
   const dt=new Date(r.id);
   div.innerHTML='<label class="sel"><input type="checkbox"'+(sel.has(r.id)?' checked':'')+'><span><b>'+ttype(r.type)+'</b> · '+dt.toLocaleDateString(LC())+' '+dt.toLocaleTimeString(LC(),{hour:'2-digit',minute:'2-digit'})+'</span></label>'+
    '<small>'+[S.stats?fmtKm(meters(r.segs))+' km · '+fmtT(ms(r.segs))+' '+tr('werktijd'):'',r.gaps?'⚠ '+tr('gapN',{n:r.gaps}):'',r.note?r.note.replace(/</g,'&lt;'):''].filter(Boolean).join(' · ')+'</small>'+
-   '<div class="row"><button class="btn s" style="background:#1971c2">'+tr('toon')+'</button><button class="btn s" style="background:#2b8a3e">'+tr('delen')+'</button><button class="btn s" style="background:#c92a2a">✕</button></div>';
+   '<div class="row"><button class="btn s" style="background:#1971c2">'+tb('toon')+'</button><button class="btn s" style="background:#2b8a3e">'+tb('delen')+'</button><button class="btn s" style="background:#c92a2a">✕</button></div>';
   const [b1,b2,b3]=div.querySelectorAll('button');
   div.querySelector('input').onchange=e=>{if(e.target.checked)sel.add(r.id);else sel.delete(r.id);selUi()};
   b1.onclick=()=>draw(r.segs,true,true);
@@ -575,11 +577,11 @@ opruim();
 function pasTaalToe(){
  document.documentElement.lang=taal;
  const Q=(q,k,a)=>{const e=document.querySelector(q);if(!e)return;if(a)e.setAttribute(a,tr(k));else e.innerHTML=tr(k)};
- Q('#t1','tabRec');Q('#t2','tabArch');Q('#adres','phAdres','placeholder');Q('#bz','aSearch','aria-label');Q('#bl','aLoc','aria-label');
+ $('t1').innerHTML=tb('tabRec');$('t2').innerHTML=tb('tabArch');Q('#adres','phAdres','placeholder');Q('#bz','aSearch','aria-label');Q('#bl','aLoc','aria-label');
  document.querySelectorAll('#type option').forEach(o=>o.textContent=ttype(o.value));
  Q('#v1 label.opt span','optStats');Q('#stats div:nth-child(2) span','werktijd');
  Q('#b3','b3');Q('#b4','b4');Q('#bh','bh');Q('#help','help');Q('#dark div','dark');
- Q('#cleanrow>span','cleanLbl');document.querySelectorAll('#clean option').forEach(o=>o.textContent=tr('cl'+o.value));
+ document.querySelector('#cleanrow>span').innerHTML=cleanHtml();document.querySelectorAll('#clean option').forEach(o=>o.textContent=tb('cl'+o.value));
  [['png','dPng'],['pdf','dPdf'],['gpx','dGpx']].forEach(([f,k])=>{const b=document.querySelector('#dlg [data-f="'+f+'"]');if(b){b.innerHTML=tr(k);b.dataset.l=b.innerHTML}});
  Q('#dx','annuleer');
  $('taalKnop').innerHTML=taal==='nl'?'<b>NL</b> | IT':'NL | <b>IT</b>';
